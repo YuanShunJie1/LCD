@@ -1,5 +1,5 @@
 # 
-# Random Label shrink + Center Loss
+# label compression + embedding compaction
 # 
 import argparse
 import ast
