@@ -33,9 +33,7 @@ from support import split_data, test_per_epoch, myprint
 from vfl_framework import VflFramework
 import dill
 
-# lc: label compression
-# 基于标签压缩和中心损失的对抗VFL标签推断攻击方案
-# Dataset
+# lc: label compression defense
 # mnist, cifar10, cifar100, imagenet12, yeast, letter
 
 parser = argparse.ArgumentParser(description='vfl framework training')
@@ -98,7 +96,6 @@ class VflFramework(nn.Module):
         self.top_fake_model = model_sets.FakeTopModel(dataset_name=args.dataset, output_times=args.num_new_classes).get_model()
         self.top_model = model_sets.TopModel(dataset_name=args.dataset).get_model()
         
-        # 真标签转伪标签与伪标签转真标签
         if os.path.exists(os.path.join(dir_save_model, 'true2false.pth')):
             self.true2false = torch.load(os.path.join(dir_save_model, 'true2false.pth'))
         else:
@@ -129,7 +126,6 @@ class VflFramework(nn.Module):
         act_bot_feats = None
         targets = None
 
-        # Step 1: Warmup training & 收集最后一个 epoch 的嵌入特征和标签
         num_iter = (len(train_loader.dataset)//(args.batch_size))+1
         for epoch in range(args.warmup_epochs):
             for batch_idx, (data, target) in enumerate(train_loader):
@@ -150,7 +146,6 @@ class VflFramework(nn.Module):
                         targets = torch.cat((targets, target), dim=0)
 
         act_bot_feats = act_bot_feats.detach().cpu()
-        # Step 2: 计算每个类别的中心（mean embedding）
         targets_np = targets.cpu().numpy()
         centers = []
 
@@ -160,17 +155,15 @@ class VflFramework(nn.Module):
             centers.append(center)
 
         centers = torch.stack(centers).float()
-        centers = F.normalize(centers, p=2, dim=1)  # 单位向量化
+        centers = F.normalize(centers, p=2, dim=1)
 
         centers = centers.detach().cpu().numpy()
-        # Step 3: 计算余弦距离矩阵（1 - cos相似度）
         dist_matrix = np.zeros((num_classes, num_classes))
         for i in range(num_classes):
             for j in range(i + 1, num_classes):
                 dist = cosine(centers[i], centers[j])
                 dist_matrix[i, j] = dist_matrix[j, i] = dist
 
-        # Step 4: 按照距离大的优先合并（余弦相似性小）
         merged = np.zeros(num_classes, dtype=bool)
         self.false2true = {i: [] for i in range(num_new_classes)}
         index = 0
@@ -181,19 +174,16 @@ class VflFramework(nn.Module):
             dist_matrix[:, merged] = np.inf
 
             class1, class2 = np.unravel_index(np.argmin(dist_matrix), dist_matrix.shape)
-            # 标记两个类为已合并
             merged[class1] = True
             merged[class2] = True
 
             self.false2true[index].extend([class1, class2])
             index += 1
 
-        # Step 5: 构建 true -> fake 标签映射
         for new_label, original_classes in self.false2true.items():
             for true_label in original_classes:
                 self.true2false[true_label] = new_label
 
-        # Step 6: 打印映射关系
         print('Fake and ground-truth labels info:')
         print('True labels to fake labels:')
         print(self.true2false)
@@ -202,7 +192,6 @@ class VflFramework(nn.Module):
         
         torch.save(self.true2false, os.path.join(dir_save_model, 'true2false.pth'))
         torch.save(self.false2true, os.path.join(dir_save_model, 'false2true.pth'))
- 
         return 
         
     def simulate_warm_up_train_round_per_batch(self, data, target):
