@@ -13,9 +13,9 @@ Place your dataset files into the `Datasets/` folder. For example: `Datasets/mni
 ### 2. Train the LCD-protected VFL model
 ```bash
 #active attack
-python lc.py --use-mal-optim True -d mnist --path-dataset ./Datasets/mnist --epochs 100 --lr 5e-2 --half 14 --batch-size 128 --gpu_id 1 --weight_cent 10
+python lcd.py --use-mal-optim True -d mnist --path-dataset ./Datasets/mnist --epochs 100 --lr 5e-2 --half 14 --batch-size 128 --gpu_id 1 --weight_cent 10
 #passive attack
-python lc.py --use-mal-optim False -d mnist --path-dataset ./Datasets/mnist --epochs 100 --lr 5e-2 --half 14 --batch-size 128 --gpu_id 1 --weight_cent 10
+python lcd.py --use-mal-optim False -d mnist --path-dataset ./Datasets/mnist --epochs 100 --lr 5e-2 --half 14 --batch-size 128 --gpu_id 1 --weight_cent 10
 ```
 ### 3. Launch the label inference attack (model completion)
 ```bash
