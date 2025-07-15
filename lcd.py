@@ -120,6 +120,7 @@ class VflFramework(nn.Module):
 
 
     def warmup_and_initialize_fake_labels(self, train_loader, labels):
+        # In this implementation, we adopt an approximation of the DP algorithm.
         num_new_classes = args.num_new_classes
         num_classes = len(set(labels))
 
@@ -195,6 +196,7 @@ class VflFramework(nn.Module):
         return 
         
     def simulate_warm_up_train_round_per_batch(self, data, target):
+        # This implementation slightly differs from the description in the paper. Here, we train the entire model during the warm-up phase, whereas in the paper, only the active participant’s model is trained. However, this discrepancy does not affect the experimental results. The only potential issue is that training the full model during warm-up may leak label information on simpler datasets. We will fix this bug in the code and update it to train only the active participant’s model, in line with the algorithm described in the paper.
         input_tensor_top_model_a = torch.tensor([], requires_grad=True)
         input_tensor_top_model_b = torch.tensor([], requires_grad=True)
         
